@@ -5,6 +5,7 @@ from board import TetrisBoard
 from players import RandomAgent, GreedyAgent, HeuristicRLAgent
 from human_player import HumanPlayer
 from gui import TetrisGUI
+from simple_neural_network import SimpleNNAgent
 
 
 def create_agent(agent_type: str):
@@ -14,6 +15,7 @@ def create_agent(agent_type: str):
         'random': lambda: RandomAgent("Random AI"),
         'greedy': lambda: GreedyAgent("Greedy AI"),
         'heuristic': lambda: HeuristicRLAgent("Heuristic RL"),
+        'simplenn': lambda: SimpleNNAgent("Simple NN"),
     }
 
     if agent_type not in agents:
@@ -26,7 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description="Simplified Tetris for RL")
     parser.add_argument(
         '--agent',
-        choices=['human', 'random', 'greedy', 'heuristic'],
+        choices=['human', 'random', 'greedy', 'heuristic', 'simplenn'],
         default='human',
         help="Type of agent to use"
     )
@@ -192,7 +194,9 @@ class RLTrainer:
 
         episode_reward = 0
         moves = 0
-        prev_state = None
+        # load initial (empty board) state into prev_state
+        prev_state = board.get_state()
+        prev_state_vector = board.get_state_vector()
 
         while not board.game_over and moves < 5000:
             # Get current state
@@ -205,6 +209,7 @@ class RLTrainer:
             # Execute action
             board.place_piece(action[0], action[1])
 
+
             # Calculate reward
             if prev_state is not None:
                 new_state = board.get_state()
@@ -212,11 +217,10 @@ class RLTrainer:
                 episode_reward += reward
 
                 # Store experience
-                self.agent.remember(prev_state_vector, prev_action, reward)
+                self.agent.remember(prev_state_vector, action, reward)
 
             prev_state = state
             prev_state_vector = state_vector
-            prev_action = action
             moves += 1
 
         # Train the agent
@@ -283,10 +287,22 @@ def example_training():
     agent.set_training_mode(False)
     run_headless(agent, 10, 20, 10)
 
+def NNTraining(num_episodes=100, print_every=10, testing_episodes=10):
+    print("Training a neural network")
+
+    agent = SimpleNNAgent()
+    trainer = RLTrainer(agent)
+    trainer.train(num_episodes, print_every)
+
+    print("Testing the neural network")
+    agent.set_training_mode(False)
+    run_headless(agent, 10, 20, testing_episodes)
+
 
 if __name__ == "__main__":
     # Uncomment to run training example
     # example_training()
+    NNTraining(100000, 50, 100)
 
     # Run normal game
-    main()
+    # main()
