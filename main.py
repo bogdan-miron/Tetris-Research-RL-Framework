@@ -195,6 +195,7 @@ class RLTrainer:
         episode_reward = 0
         moves = 0
         # load initial (empty board) state into prev_state
+        new_state = None
         prev_state = board.get_state()
         prev_state_vector = board.get_state_vector()
 
@@ -211,15 +212,14 @@ class RLTrainer:
 
 
             # Calculate reward
-            if prev_state is not None:
-                new_state = board.get_state()
-                reward = self.agent.calculate_reward(prev_state, new_state, board.game_over)
-                episode_reward += reward
+            new_state = board.get_state()
+            reward = self.agent.calculate_reward(prev_state, new_state, board.game_over)
+            episode_reward += reward
 
-                # Store experience
-                self.agent.remember(prev_state_vector, action, reward)
+            # Store experience
+            self.agent.remember(prev_state_vector, action, reward)
 
-            prev_state = state
+            prev_state = new_state
             prev_state_vector = state_vector
             moves += 1
 
@@ -302,7 +302,7 @@ def NNTraining(num_episodes=100, print_every=10, testing_episodes=10):
 if __name__ == "__main__":
     # Uncomment to run training example
     # example_training()
-    NNTraining(100000, 50, 100)
+    NNTraining(1000, 20, 100)
 
     # Run normal game
     # main()

@@ -32,10 +32,63 @@ class SimpleNN(nn.Module):
         return x
 
 
+class CNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv_layers = nn.ModuleList([
+            # # 20 x 10
+            # nn.Conv2d(1, 7, 5, stride = 1, padding = 1), # 18 x 8
+            # nn.MaxPool2d(2, 2), # 9 x 4
+            # nn.Conv2d(7, 15, 3, stride = 1, padding = 1), # 9 x 4
+            # nn.MaxPool2d(3, 1), # 7 x 2
+            # nn.Conv2d(15, 30, 2, stride = 1) # 6 x 1
+
+            # 20 x 10
+            nn.Conv2d(1, 7, 5, stride = 1, padding = 2), # 20 x 10
+            nn.Conv2d(7, 15, 5, stride = 1, padding = 2), # 20 x 10
+            nn.MaxPool2d(3, 1), # 18 x 8
+            nn.Conv2d(15, 30, (7, 3), stride = 1), # 12 x 6
+            nn.MaxPool2d(3, 1, padding = 1), # 12 x 6
+            nn.Conv2d(30, 50, (7, 3), stride = 1), # 6 x 4
+            nn.MaxPool2d(3, 1), # 4 x 2
+        ])
+        self.merging_layers = nn.ModuleList([
+            # nn.Linear(20 * 10 * 3 + 14, 256),
+            # nn.Linear(6 * 30 + 14, 256),
+            nn.Linear(50 * 4 * 2 + 14, 256),
+            # nn.Linear(256, 256),
+
+        ])
+        self.out_layers = nn.ModuleList([
+            nn.Linear(256, 40),
+        ])
+
+    def forward(self, x):
+        x = x.to('cuda')
+        x1, x2 = torch.split(x, [200, 14])
+        x1 = x1.view([1, 20, 10])
+        # if random.randint(0, 3000) == 25:
+        #     print(x1)
+        for layer in self.conv_layers:
+            x1 = layer(x1)
+            x1 = F.relu(x1)
+
+        x1 = x1.view([-1])
+        x = torch.cat([x1, x2])
+        for layer in self.merging_layers:
+            x = layer(x)
+            x = F.relu(x)
+
+        for layer in self.out_layers:
+            x = layer(x)
+
+        return x
+
 class SimpleNNAgent(RLAgent):
-    def __init__(self, name: str = "RL Agent", exploration_rate: float = 0.02):
+    def __init__(self, name: str = "RL Agent", exploration_rate: float = 0.1):
         super().__init__(name, exploration_rate)
-        self.model = SimpleNN(214, 40, 256).to('cuda')
+        # self.model = SimpleNN(214, 40, 256).to('cuda')
+        self.model = CNN().to('cuda')
 
         # extra info to remember
         self.episode_input = []
@@ -97,7 +150,7 @@ class SimpleNNAgent(RLAgent):
 
         return action
 
-    def train(self, decay_factor = 0.8):
+    def train(self, decay_factor = 0.0):
         # rewards are gained through multiple actions, propagate the reward back in time
         for i in range(len(self.episode_rewards) - 2, -1, -1):
             self.episode_rewards[i] += decay_factor * self.episode_rewards[i + 1]
@@ -111,15 +164,15 @@ class SimpleNNAgent(RLAgent):
             input_params = self.episode_input[episode]
             output = self.model.forward(torch.FloatTensor(input_params))
             action_id = self.episode_action_id[episode]
-            ((output[action_id] - self.episode_rewards[episode]) ** 2).backward()
+            (((output[action_id] - self.episode_rewards[episode]) ** 2) ** 0.5).backward()
 
         # print(self.model.fc1.weight)
 
         self.optimizer.step()
 
         import random
-        if random.randint(1, 50) == 25:
-            print(self.episode_rewards)
+        # if random.randint(1, 50) == 25:
+        #     print(self.episode_rewards)
         #     print(self.episode_action_id)
         #     print(self.episode_action_id)
         #     print(self.episode_rewards)
@@ -130,6 +183,21 @@ class SimpleNNAgent(RLAgent):
         self.episode_states.clear()
         self.episode_input.clear()
         self.episode_action_id.clear()
+
+    @staticmethod
+    def _count_holes(board_state):
+        board = board_state['board']
+
+        hole_count = 0
+        for j in range(10):
+            roof = False
+            for i in range(20):
+                if board[i][j]:
+                    roof = True
+                elif roof:
+                  hole_count += 1
+
+        return hole_count
 
 
     def calculate_reward(self, prev_state: Dict, new_state: Dict, game_over: bool) -> float:
@@ -157,7 +225,14 @@ class SimpleNNAgent(RLAgent):
         prev_max_height = self._get_max_height(prev_state['board'])
         current_max_height = self._get_max_height(new_state['board'])
         # print(current_max_height - prev_max_height)
-        reward -= 2 * (current_max_height - prev_max_height)
+        # print(prev_max_height)
+        # print(current_max_height)
+        reward -= 15 * (current_max_height - prev_max_height)
+
+        # penalty for increasing hole count
+        current_holes = self._count_holes(new_state)
+        prev_holes = self._count_holes(prev_state)
+        reward -= 25 * (current_holes - prev_holes)
 
         # Reward for increasing score
         reward += 2.0 * (new_state['score'] - prev_state['score'])
