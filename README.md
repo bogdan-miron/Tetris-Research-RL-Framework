@@ -3,7 +3,7 @@
 A research-oriented framework for developing and training RL agents on Tetris. Used for educational purposes.
 Created for the UBB AI Autumn Bootcamp 2025.
 
-**Instructors:** Alexandru-Bogdan Miron, Letu Andrei
+**Instructors:** Students: Alexandru-Bogdan Miron, Letu Andrei
 
 **Supervisor:** Prof. Laura Silvia Diosan, Babes Bolyai University of Cluj-Napoca
 
