@@ -11,6 +11,8 @@ Created for the UBB AI Autumn Bootcamp 2025.
 
 This framework provides a complete environment for researching and implementing reinforcement learning agents that play Tetris. The game mechanics are simplified to focus on strategic decision-making: agents select where and how to place pieces, which drop instantly. This abstraction removes timing complexity and allows researchers to concentrate on developing effective learning algorithms and policies.
 
+![Tetris Screenshot](images/tetris2.png)
+
 ## Quick Start
 
 ```bash
@@ -59,6 +61,8 @@ Actions are `(column, rotation)` tuples:
 - Rotation: 0-3 (varies by piece type)
 
 Pieces drop instantly to the lowest valid position in the selected column.
+
+![Tetris Screenshot](images/tetris3.png)
 
 ### Reward Structure
 Agents learn through custom reward functions. Common components:
