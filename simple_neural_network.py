@@ -35,40 +35,27 @@ class SimpleNN(nn.Module):
 class CNN(nn.Module):
     def __init__(self):
         super().__init__()
+
         self.conv_layers = nn.ModuleList([
-            # # 20 x 10
-            # nn.Conv2d(1, 7, 5, stride = 1, padding = 1), # 18 x 8
-            # nn.MaxPool2d(2, 2), # 9 x 4
-            # nn.Conv2d(7, 15, 3, stride = 1, padding = 1), # 9 x 4
-            # nn.MaxPool2d(3, 1), # 7 x 2
-            # nn.Conv2d(15, 30, 2, stride = 1) # 6 x 1
-
             # 20 x 10
-            nn.Conv2d(1, 7, 5, stride = 1, padding = 2), # 20 x 10
-            nn.Conv2d(7, 15, 5, stride = 1, padding = 2), # 20 x 10
-            nn.MaxPool2d(3, 1), # 18 x 8
-            nn.Conv2d(15, 30, (7, 3), stride = 1), # 12 x 6
-            nn.MaxPool2d(3, 1, padding = 1), # 12 x 6
-            nn.Conv2d(30, 50, (7, 3), stride = 1), # 6 x 4
-            nn.MaxPool2d(3, 1), # 4 x 2
+            nn.Conv2d(1, 64, 3, padding = 1), # 20 x 10
+            nn.Conv2d(64, 16, (20, 1)), # 1 x 10
         ])
+
         self.merging_layers = nn.ModuleList([
-            # nn.Linear(20 * 10 * 3 + 14, 256),
-            # nn.Linear(6 * 30 + 14, 256),
-            nn.Linear(50 * 4 * 2 + 14, 256),
-            # nn.Linear(256, 256),
+            nn.Linear(16 * 1 * 10 + 14, 128),
 
         ])
+
         self.out_layers = nn.ModuleList([
-            nn.Linear(256, 40),
+            nn.Linear(128, 40),
         ])
 
     def forward(self, x):
         x = x.to('cuda')
         x1, x2 = torch.split(x, [200, 14])
         x1 = x1.view([1, 20, 10])
-        # if random.randint(0, 3000) == 25:
-        #     print(x1)
+
         for layer in self.conv_layers:
             x1 = layer(x1)
             x1 = F.relu(x1)
@@ -84,11 +71,16 @@ class CNN(nn.Module):
 
         return x
 
+
 class SimpleNNAgent(RLAgent):
-    def __init__(self, name: str = "RL Agent", exploration_rate: float = 0.1):
+    def __init__(self, name: str = "RL Agent", exploration_rate: float = 0.1, pretrained = False):
         super().__init__(name, exploration_rate)
         # self.model = SimpleNN(214, 40, 256).to('cuda')
         self.model = CNN().to('cuda')
+
+        if pretrained:
+            self.model.load_state_dict(torch.load('model.pt', weights_only=False))
+            self.set_training_mode(False)
 
         # extra info to remember
         self.episode_input = []
@@ -96,10 +88,10 @@ class SimpleNNAgent(RLAgent):
         self.episode_input_to_remember = None
         self.episode_action_id_to_remember = None
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr = 0.01)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr = 0.001)
 
     @staticmethod
-    def __board_state_to_input(state: Dict[str, Any]) -> np.ndarray:
+    def _board_state_to_input(state: Dict[str, Any]) -> np.ndarray:
         ''' turns state dictionary into an array of usable inputs '''
 
         board = state['board']
@@ -113,7 +105,6 @@ class SimpleNNAgent(RLAgent):
         next_piece_v[piece_type[next_piece]] = 1.0
 
         input_vals = np.append(np.array(board.flatten(), dtype = 'bool'), [current_piece_v, next_piece_v])
-        # print(input_vals)
         return input_vals
 
     def remember_extra(self, input_params, action_id):
@@ -126,12 +117,9 @@ class SimpleNNAgent(RLAgent):
         self.episode_action_id.append(self.episode_action_id_to_remember)
 
     def get_best_action(self, state: Dict[str, Any]) -> Tuple[int, int]:
-        input_params = self.__board_state_to_input(state)
+        input_params = self._board_state_to_input(state)
 
         predictions = self.model.forward(torch.FloatTensor(input_params))
-        # if random.randint(0, 50) == 25:
-        #     print("predictions:")
-        #     print(predictions)
 
         valid_actions = state['valid_actions']
         max_pos = 0
@@ -143,20 +131,15 @@ class SimpleNNAgent(RLAgent):
             if prediction > max_pred:
                 max_pred = prediction
                 max_pos = i
-        # print(max_pos)
 
         action = max_pos // 4, max_pos % 4
         self.remember_extra(input_params, max_pos)
 
         return action
 
-    def train(self, decay_factor = 0.0):
-        # rewards are gained through multiple actions, propagate the reward back in time
+    def train(self, decay_factor = 0.5):
         for i in range(len(self.episode_rewards) - 2, -1, -1):
             self.episode_rewards[i] += decay_factor * self.episode_rewards[i + 1]
-
-        # print(len(self.episode_rewards))
-        # print(self.episode_rewards)
 
         self.optimizer.zero_grad()
 
@@ -166,27 +149,18 @@ class SimpleNNAgent(RLAgent):
             action_id = self.episode_action_id[episode]
             (((output[action_id] - self.episode_rewards[episode]) ** 2) ** 0.5).backward()
 
-        # print(self.model.fc1.weight)
-
         self.optimizer.step()
+        # self.exploration_rate -= 0.00003
 
-        import random
-        # if random.randint(1, 50) == 25:
-        #     print(self.episode_rewards)
-        #     print(self.episode_action_id)
-        #     print(self.episode_action_id)
-        #     print(self.episode_rewards)
-        #     print(self.model.fc1.weight)
+        self.clear_episode()
 
-        self.episode_rewards.clear()
-        self.episode_actions.clear()
-        self.episode_states.clear()
+    def clear_episode(self):
+        super().clear_episode()
         self.episode_input.clear()
         self.episode_action_id.clear()
 
     @staticmethod
-    def _count_holes(board_state):
-        board = board_state['board']
+    def _count_holes(board):
 
         hole_count = 0
         for j in range(10):
@@ -199,6 +173,31 @@ class SimpleNNAgent(RLAgent):
 
         return hole_count
 
+    @staticmethod
+    def _compute_height_penalty(board):
+        # print(board)
+        penalty = 0
+        for j in range(10):
+            for i in range(20):
+                penalty += (20 - i) * (board[i][j] > 0)
+
+        return penalty
+
+    @staticmethod
+    def _measure_frontier(board):
+        # measures the perimeter of the filled part of the board
+
+        changes = 0
+        for j in range(10):
+            for i in range(1, 20):
+                if bool(board[i][j]) != bool(board[i-1][j]):
+                    changes += 1
+        for i in range(20):
+            for j in range(1, 10):
+                if bool(board[i][j]) != bool(board[i][j-1]):
+                    changes += 1
+
+        return changes
 
     def calculate_reward(self, prev_state: Dict, new_state: Dict, game_over: bool) -> float:
         """
@@ -215,27 +214,18 @@ class SimpleNNAgent(RLAgent):
         reward = 0.0
         if game_over:
             # point penalty for losing
-            reward -= 200
+            reward -= 500
             pass
 
         # reward for not dying
         reward += 5
 
-        # small penalty for increasing the column size
-        prev_max_height = self._get_max_height(prev_state['board'])
-        current_max_height = self._get_max_height(new_state['board'])
-        # print(current_max_height - prev_max_height)
-        # print(prev_max_height)
-        # print(current_max_height)
-        reward -= 15 * (current_max_height - prev_max_height)
-
-        # penalty for increasing hole count
-        current_holes = self._count_holes(new_state)
-        prev_holes = self._count_holes(prev_state)
-        reward -= 25 * (current_holes - prev_holes)
+        reward -= self._compute_height_penalty(new_state['board']) - self._compute_height_penalty(prev_state['board'])
+        # reward -= 5 * (self._count_holes(new_state['board']) - self._compute_height_penalty(prev_state['board']))
+        reward -= 3 * (self._measure_frontier(new_state['board']) - self._measure_frontier(prev_state['board']))
 
         # Reward for increasing score
-        reward += 2.0 * (new_state['score'] - prev_state['score'])
+        reward += 10.0 * (new_state['score'] - prev_state['score'])
 
         return reward
 
@@ -251,16 +241,19 @@ class SimpleNNAgent(RLAgent):
         """
         valid_actions = state['valid_actions']
         if not valid_actions:
-            return (0, 0)
+            return 0, 0
 
         # Exploration
         if self.training_mode and random.random() < self.exploration_rate:
             random_action = random.choice(valid_actions)
 
             column, rotation = random_action
-            input_params = self.__board_state_to_input(state)
+            input_params = self._board_state_to_input(state)
             self.remember_extra(input_params, column * 4 + rotation)
             return random_action
 
         # Exploitation
         return self.get_best_action(state)
+
+    def save_model(self):
+        torch.save(self.model.state_dict(), 'model1.pt')

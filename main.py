@@ -15,7 +15,7 @@ def create_agent(agent_type: str):
         'random': lambda: RandomAgent("Random AI"),
         'greedy': lambda: GreedyAgent("Greedy AI"),
         'heuristic': lambda: HeuristicRLAgent("Heuristic RL"),
-        'simplenn': lambda: SimpleNNAgent("Simple NN"),
+        'simplenn': lambda: SimpleNNAgent("Simple NN", pretrained = True),
     }
 
     if agent_type not in agents:
@@ -290,7 +290,7 @@ def example_training():
 def NNTraining(num_episodes=100, print_every=10, testing_episodes=10):
     print("Training a neural network")
 
-    agent = SimpleNNAgent()
+    agent = SimpleNNAgent(pretrained=False)
     trainer = RLTrainer(agent)
     trainer.train(num_episodes, print_every)
 
@@ -298,11 +298,15 @@ def NNTraining(num_episodes=100, print_every=10, testing_episodes=10):
     agent.set_training_mode(False)
     run_headless(agent, 10, 20, testing_episodes)
 
+    agent.save_model()
+
 
 if __name__ == "__main__":
     # Uncomment to run training example
     # example_training()
-    NNTraining(1000, 20, 100)
+
+    # Uncomment to train a neural network
+    # NNTraining(5000, 20, 200)
 
     # Run normal game
-    # main()
+    main()
