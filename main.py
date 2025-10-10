@@ -6,6 +6,10 @@ from players import RandomAgent, GreedyAgent, HeuristicRLAgent
 from human_player import HumanPlayer
 from gui import TetrisGUI
 from simple_neural_network import SimpleNNAgent
+from advanced_rl_agents import (
+    DQNAgent, DoubleDQNAgent, DuelingDQNAgent,
+    REINFORCEAgent, A2CAgent
+)
 
 
 def create_agent(agent_type: str):
@@ -16,6 +20,11 @@ def create_agent(agent_type: str):
         'greedy': lambda: GreedyAgent("Greedy AI"),
         'heuristic': lambda: HeuristicRLAgent("Heuristic RL"),
         'simplenn': lambda: SimpleNNAgent("Simple NN", pretrained = True),
+        'dqn': lambda: DQNAgent("DQN"),
+        'double_dqn': lambda: DoubleDQNAgent("Double DQN"),
+        'dueling_dqn': lambda: DuelingDQNAgent("Dueling DQN"),
+        'reinforce': lambda: REINFORCEAgent("REINFORCE"),
+        'a2c': lambda: A2CAgent("A2C"),
     }
 
     if agent_type not in agents:
@@ -28,7 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description="Simplified Tetris for RL")
     parser.add_argument(
         '--agent',
-        choices=['human', 'random', 'greedy', 'heuristic', 'simplenn'],
+        choices=['human', 'random', 'greedy', 'heuristic', 'simplenn', 'dqn', 'double_dqn', 'dueling_dqn', 'reinforce', 'a2c'],
         default='human',
         help="Type of agent to use"
     )
