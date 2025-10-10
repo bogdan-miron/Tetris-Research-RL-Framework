@@ -23,7 +23,7 @@ class SimpleNN(nn.Module):
         ])
 
     def forward(self, x):
-        x = x.to('cuda')
+        x = x.to('cuda' if torch.cuda.is_available() else 'cpu')
         for i in range(len(self.layers) - 1):
             x = self.layers[i](x)
             x = F.relu(x)
@@ -52,7 +52,7 @@ class CNN(nn.Module):
         ])
 
     def forward(self, x):
-        x = x.to('cuda')
+        x = x.to('cuda' if torch.cuda.is_available() else 'cpu')
         x1, x2 = torch.split(x, [200, 14])
         x1 = x1.view([1, 20, 10])
 
@@ -75,8 +75,8 @@ class CNN(nn.Module):
 class SimpleNNAgent(RLAgent):
     def __init__(self, name: str = "RL Agent", exploration_rate: float = 0.1, pretrained = False):
         super().__init__(name, exploration_rate)
-        # self.model = SimpleNN(214, 40, 256).to('cuda')
-        self.model = CNN().to('cuda')
+        # self.model = SimpleNN(214, 40, 256).to('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = CNN().to('cuda' if torch.cuda.is_available() else 'cpu')
 
         if pretrained:
             self.model.load_state_dict(torch.load('model.pt', weights_only=False))
@@ -256,4 +256,4 @@ class SimpleNNAgent(RLAgent):
         return self.get_best_action(state)
 
     def save_model(self):
-        torch.save(self.model.state_dict(), 'model1.pt')
+        torch.save(self.model.state_dict(), 'model.pt')

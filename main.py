@@ -19,7 +19,7 @@ def create_agent(agent_type: str):
         'random': lambda: RandomAgent("Random AI"),
         'greedy': lambda: GreedyAgent("Greedy AI"),
         'heuristic': lambda: HeuristicRLAgent("Heuristic RL"),
-        'simplenn': lambda: SimpleNNAgent("Simple NN", pretrained = True),
+        'simplenn': lambda: SimpleNNAgent("Simple NN"),#, pretrained = True),
         'dqn': lambda: DQNAgent("DQN"),
         'double_dqn': lambda: DoubleDQNAgent("Double DQN"),
         'dueling_dqn': lambda: DuelingDQNAgent("Dueling DQN"),
