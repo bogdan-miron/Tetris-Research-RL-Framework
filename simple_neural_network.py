@@ -154,7 +154,7 @@ class SimpleNNAgent(RLAgent):
             input_params = self.episode_input[episode]
             output = self.model.forward(torch.FloatTensor(input_params))
             action_id = self.episode_action_id[episode]
-            (((output[action_id] - self.episode_rewards[episode]) ** 2) ** 0.5).backward()
+            ((output[action_id] - self.episode_rewards[episode]) ** 2).backward()
 
         self.optimizer.step()
         # self.exploration_rate -= 0.00003
