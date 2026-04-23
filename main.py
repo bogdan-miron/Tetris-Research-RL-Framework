@@ -8,7 +8,7 @@ from gui import TetrisGUI
 from simple_neural_network import SimpleNNAgent
 from advanced_rl_agents import (
     DQNAgent, DoubleDQNAgent, DuelingDQNAgent,
-    REINFORCEAgent, A2CAgent
+    REINFORCEAgent, A2CAgent, PrioritizedDQNAgent
 )
 
 
@@ -25,6 +25,7 @@ def create_agent(agent_type: str):
         'dueling_dqn': lambda: DuelingDQNAgent("Dueling DQN"),
         'reinforce': lambda: REINFORCEAgent("REINFORCE"),
         'a2c': lambda: A2CAgent("A2C"),
+        'prioritized_dqn': lambda: PrioritizedDQNAgent("Prioritized DQN"),
     }
 
     if agent_type not in agents:
@@ -37,7 +38,7 @@ def main():
     parser = argparse.ArgumentParser(description="Simplified Tetris for RL")
     parser.add_argument(
         '--agent',
-        choices=['human', 'random', 'greedy', 'heuristic', 'simplenn', 'dqn', 'double_dqn', 'dueling_dqn', 'reinforce', 'a2c'],
+        choices=['human', 'random', 'greedy', 'heuristic', 'simplenn', 'dqn', 'double_dqn', 'dueling_dqn', 'reinforce', 'a2c', 'prioritized_dqn'],
         default='human',
         help="Type of agent to use"
     )

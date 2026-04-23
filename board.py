@@ -213,12 +213,7 @@ class TetrisBoard:
         landing_row = self._get_landing_row(col, piece_shape)
 
         if landing_row is None or landing_row < 0:
-            # Invalid placement - game over
-            self.game_over = True
-            return False
-
-        # Check if piece goes above board (game over condition)
-        if landing_row < 0:
+            # Invalid placement or piece goes above board - game over
             self.game_over = True
             return False
 

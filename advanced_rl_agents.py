@@ -491,12 +491,10 @@ class REINFORCEAgent(RLAgent):
         return (col, rot)
 
     def remember(self, state: np.ndarray, action: Tuple[int, int], reward: float):
-        """Store experience."""
+        """Store experience. REINFORCE trains from log-probs + rewards, so
+        we just keep the raw state vector that choose_action already encoded."""
         if self.training_mode:
-            input_params = self.board_state_to_input({'board': state.reshape(20, 10),
-                                                      'current_piece': 'I',
-                                                      'next_piece': 'I'})
-            self.episode_states.append(input_params)
+            self.episode_states.append(state)
             self.episode_actions.append(action)
             self.episode_rewards.append(reward)
 

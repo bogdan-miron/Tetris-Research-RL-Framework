@@ -98,6 +98,13 @@ class SimpleNNAgent(RLAgent):
         current_piece = state['current_piece']
         next_piece = state['next_piece']
 
+        # The CNN architecture is fixed to a 20x10 board (40 = 10 cols * 4 rotations outputs).
+        if board.shape != (20, 10):
+            raise ValueError(
+                f"SimpleNNAgent/CNN only supports a 20x10 board, got {board.shape}. "
+                "Run with --width 10 --height 20 or use a different agent."
+            )
+
         piece_type = {'I' : 0, 'O' : 1, 'L' : 2, 'J' : 3, 'Z' : 4, 'S' : 5, 'T' : 6}
         current_piece_v = [0.0 for _ in range(7)]
         current_piece_v[piece_type[current_piece]] = 1.0
@@ -147,7 +154,7 @@ class SimpleNNAgent(RLAgent):
             input_params = self.episode_input[episode]
             output = self.model.forward(torch.FloatTensor(input_params))
             action_id = self.episode_action_id[episode]
-            (((output[action_id] - self.episode_rewards[episode]) ** 2) ** 0.5).backward()
+            ((output[action_id] - self.episode_rewards[episode]) ** 2).backward()
 
         self.optimizer.step()
         # self.exploration_rate -= 0.00003
